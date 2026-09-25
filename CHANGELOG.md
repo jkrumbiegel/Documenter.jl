@@ -5,10 +5,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Added
+
+* The HTML output now sets a `no-referrer` referrer policy by default, so that the CDNs serving the fonts, stylesheets and scripts are no longer told which page the reader is on. It can be changed or disabled with the `referrerpolicy` keyword of `Documenter.HTML`. ([#2391], [#2401])
+
 ### Fixed
 
+* An `@contents` or `@index` block whose body fails to parse is now left unexpanded instead of falling back to the defaults, which silently listed the whole document. ([#1140])
+* `@contents` blocks without an explicit `Pages = [...]` now list the pages in the order given by the `pages` argument of `makedocs`, instead of alphabetically by source path. ([#936])
+* A fenced code block whose language merely starts with the name of a Documenter block, such as ```` ```jldoctests ```` or ```` ```@examples ````, no longer aborts the build with an `internal error`. Documenter now dispatches on the whole language, so such a block is again passed through as an ordinary code block — and reported with a warning, since it is usually a typo. ([#2997], [#2912])
 * PNG and JPEG images from `@example` blocks are now displayed at the size implied by the pixel density stored in the file, instead of being blown up to their raw pixel dimensions. ([#2993])
-
 
 ## Version [v1.19.0] - 2026-09-01
 
@@ -1734,6 +1740,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [#929]: https://github.com/JuliaDocs/Documenter.jl/issues/929
 [#934]: https://github.com/JuliaDocs/Documenter.jl/issues/934
 [#935]: https://github.com/JuliaDocs/Documenter.jl/issues/935
+[#936]: https://github.com/JuliaDocs/Documenter.jl/issues/936
 [#937]: https://github.com/JuliaDocs/Documenter.jl/issues/937
 [#938]: https://github.com/JuliaDocs/Documenter.jl/issues/938
 [#941]: https://github.com/JuliaDocs/Documenter.jl/issues/941
@@ -1801,6 +1808,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [#1119]: https://github.com/JuliaDocs/Documenter.jl/issues/1119
 [#1121]: https://github.com/JuliaDocs/Documenter.jl/issues/1121
 [#1137]: https://github.com/JuliaDocs/Documenter.jl/issues/1137
+[#1140]: https://github.com/JuliaDocs/Documenter.jl/issues/1140
 [#1144]: https://github.com/JuliaDocs/Documenter.jl/issues/1144
 [#1147]: https://github.com/JuliaDocs/Documenter.jl/issues/1147
 [#1148]: https://github.com/JuliaDocs/Documenter.jl/issues/1148
@@ -2179,8 +2187,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [#2375]: https://github.com/JuliaDocs/Documenter.jl/issues/2375
 [#2378]: https://github.com/JuliaDocs/Documenter.jl/issues/2378
 [#2382]: https://github.com/JuliaDocs/Documenter.jl/issues/2382
+[#2391]: https://github.com/JuliaDocs/Documenter.jl/issues/2391
 [#2394]: https://github.com/JuliaDocs/Documenter.jl/issues/2394
 [#2399]: https://github.com/JuliaDocs/Documenter.jl/issues/2399
+[#2401]: https://github.com/JuliaDocs/Documenter.jl/issues/2401
 [#2403]: https://github.com/JuliaDocs/Documenter.jl/issues/2403
 [#2406]: https://github.com/JuliaDocs/Documenter.jl/issues/2406
 [#2408]: https://github.com/JuliaDocs/Documenter.jl/issues/2408
@@ -2328,6 +2338,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [#2987]: https://github.com/JuliaDocs/Documenter.jl/issues/2987
 [#2992]: https://github.com/JuliaDocs/Documenter.jl/issues/2992
 [#2993]: https://github.com/JuliaDocs/Documenter.jl/issues/2993
+[#2997]: https://github.com/JuliaDocs/Documenter.jl/issues/2997
 [JuliaLang/julia#36953]: https://github.com/JuliaLang/julia/issues/36953
 [JuliaLang/julia#38054]: https://github.com/JuliaLang/julia/issues/38054
 [JuliaLang/julia#39841]: https://github.com/JuliaLang/julia/issues/39841

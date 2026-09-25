@@ -1054,14 +1054,28 @@ function populate!(contents::ContentsNode, document::Document)
             end
         end
     end
-    # Sorting contents links.
-    pagesmap = precedence(contents.pages)
+    # Sorting contents links. Without an explicit `Pages = [...]`, fall back to the
+    # navigation order (i.e. the `pages` argument of `makedocs`) rather than the order
+    # in which the pages happened to be expanded.
+    pagesmap = precedence(isempty(contents.pages) ? navpages(document, dirname(contents.build)) : contents.pages)
     comparison = function (a, b)
         (x = _compare(pagesmap, 2, a, b)) == 0 || return x < 0 # page
         return a[1] < b[1]                                            # anchor order
     end
     sort!(contents.elements, lt = comparison)
     return contents
+end
+
+# The pages of the navigation menu, as paths relative to `dir`, matching the page
+# paths stored in the elements of a `ContentsNode`.
+function navpages(document::Document, dir::AbstractString)
+    pages = String[]
+    for navnode in document.internal.navlist
+        page = get(document.blueprint.pages, navnode.page, nothing)
+        page === nothing && continue
+        push!(pages, relpath(page.build, dir))
+    end
+    return pages
 end
 
 # some replacements for jldoctest blocks
@@ -1079,7 +1093,7 @@ function doctest_replace!(ast::MarkdownAST.Node)
 end
 doctest_replace!(docsnode::DocsNode) = foreach(doctest_replace!, docsnode.mdasts)
 function doctest_replace!(block::MarkdownAST.CodeBlock)
-    startswith(block.info, "jldoctest") || return
+    iscodelang(block, "jldoctest") || return
     # suppress output for `#output`-style doctests with `output=false` kwarg
     if occursin(r"^# output$"m, block.code) && occursin(r";.*output\h*=\h*false", block.info)
         input = first(split(block.code, "# output\n", limit = 2))
@@ -1090,10 +1104,15 @@ function doctest_replace!(block::MarkdownAST.CodeBlock)
 end
 doctest_replace!(@nospecialize _) = nothing
 
+# Builds a ContentsNode or IndexNode from the settings assigned in `block`. Returns
+# `nothing` if the block does not parse -- a broken block must not silently fall back to
+# the defaults, which would list the whole document (issue #1140).
 function buildnode(T::Type, block, doc, page)
     mod = get(page.globals.meta, :CurrentModule, Main)
     dict = Dict{Symbol, Any}(:source => page.source, :build => page.build)
-    for (ex, str) in parseblock(block.code, doc, page)
+    exprs = parseblock(block.code, doc, page; parse_error_result = nothing)
+    exprs === nothing && return nothing
+    for (ex, str) in exprs
         if isassign(ex)
             cd(dirname(page.source)) do
                 dict[ex.args[1]] = Core.eval(mod, ex.args[2])

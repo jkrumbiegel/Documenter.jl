@@ -206,6 +206,10 @@ If `raise=false` is passed, the `Meta.parse` does not raise an exception on pars
 but instead returns an expression that will raise an error when evaluated. `parseblock`
 returns this expression normally and it must be handled appropriately by the caller.
 
+On a parse error, `parseblock` reports the error and returns `parse_error_result`, which
+defaults to an empty vector. Callers that must distinguish a broken block from an empty one
+can pass e.g. `parse_error_result = nothing`.
+
 The `linenumbernode` can be passed as a `LineNumberNode` to give information about filename
 and starting line number of the block (requires Julia 1.6 or higher).
 
@@ -218,7 +222,8 @@ If not specified, the default parser is used. When both `syntax_version` and `mo
 """
 function parseblock(
         code::AbstractString, doc, file; skip = 0, keywords = true, raise = true,
-        linenumbernode = nothing, lines = nothing, syntax_version = nothing, mod = nothing
+        linenumbernode = nothing, lines = nothing, syntax_version = nothing, mod = nothing,
+        parse_error_result = []
     )
     # Drop `skip` leading lines from the code block. Needed for deprecated `{docs}` syntax.
     code = string(code, '\n')
@@ -252,7 +257,7 @@ function parseblock(
                 end
             catch err
                 @docerror(doc, :parse_error, "failed to parse code block in $(locrepr(file, lines))", exception = err)
-                return []
+                return parse_error_result
             end
         end
         str = SubString(code, cursor, prevind(code, ncursor))
@@ -708,6 +713,52 @@ Extracts the language identifier from the info string of a Markdown code block.
 function codelang(infostring::AbstractString)
     m = match(r"^\s*(\S*)", infostring)
     return m[1]
+end
+
+"""
+    $(SIGNATURES)
+
+Extracts the language of a Markdown code block from its info string, that is,
+everything up to the first whitespace character or `;`.
+
+Unlike [`codelang`](@ref), which yields the language used for syntax
+highlighting, this is the name Documenter dispatches on: `@example name; k = v`
+and `jldoctest; setup = :(x = 1)` are written in the languages `@example` and
+`jldoctest`.
+"""
+function blocklang(infostring::AbstractString)
+    i = findfirst(c -> isspace(c) || c == ';', infostring)
+    return i === nothing ? String(infostring) : infostring[1:prevind(infostring, i)]
+end
+
+"""
+    $(SIGNATURES)
+
+Whether a code block is written in the language `lang`, that is, its info string
+is `lang` optionally followed by a name and `; key = value` arguments.
+"""
+iscodelang(block::MarkdownAST.CodeBlock, lang::AbstractString) = blocklang(block.info) == lang
+iscodelang(node::MarkdownAST.Node, lang::AbstractString) = iscodelang(node.element, lang)
+iscodelang(x, lang::AbstractString) = false
+
+"""
+    $(SIGNATURES)
+
+If the language of a code block is not one of `langs` but starts with one of
+them — `jldoctests` for `jldoctest`, say — return the pair
+`(language, intended language)`, and `nothing` otherwise.
+"""
+function misspelled_blocklang(infostring::AbstractString, langs)
+    lang = blocklang(infostring)
+    i = findfirst(l -> lang != l && startswith(lang, l), langs)
+    return i === nothing ? nothing : (lang, langs[i])
+end
+
+# Such a block is passed through as an ordinary code block, which is what someone
+# writing e.g. `jldoctest_special` on purpose wants; only warn, never error.
+function warn_misspelled_blocklang((lang, intended), source)
+    @warn "In $(source): unknown code block language `$(lang)`; did you mean `$(intended)`?"
+    return
 end
 
 """
