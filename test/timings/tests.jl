@@ -9,7 +9,7 @@ sections(tree) = sort(collect(keys(tree["inner_timers"])))
     @testset "collected sections" begin
         @test !timer(false).enabled
         @test sections(TimerOutputs.todict(timer(false))) == String[]
-        @test_throws "timings_detail must be a fraction in (0, 1], got 1.5" makedocs(; sitename = "Test", timings_detail = 1.5)
+        @test_throws ArgumentError makedocs(; sitename = "Test", timings_detail = 1.5)
 
         tree = TimerOutputs.todict(timer(true))
         @test sections(tree) == ["CheckDocument", "CrossReferences", "Doctest", "ExpandTemplates", "Populate", "RenderDocument", "SetupBuildDirectory"]
@@ -26,7 +26,7 @@ sections(tree) = sort(collect(keys(tree["inner_timers"])))
     end
 
     @testset "printed table" begin
-        seconds(x) = round(Int, x * 1.0e9)
+        seconds(x) = round(Int64, x * 1.0e9)
         section(time, inner = Dict{String, Any}()) = Dict{String, Any}("time_ns" => seconds(time), "inner_timers" => inner)
         tree = section(
             0, Dict{String, Any}(

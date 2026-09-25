@@ -27,7 +27,7 @@ const TIMINGS_NUMBER_COLUMNS_WIDTH = 2 + 8 + 7
 struct TimingRow
     depth::Int
     label::String
-    time_ns::Int
+    time_ns::Int64
 end
 
 function print_build_timings(io::IO, timer::TimerOutputs.TimerOutput, detail::Real)
@@ -69,14 +69,14 @@ function page_rows(pages::Dict, block_budget::Real)
     shown_pages = Set(page for (page, _) in shown_blocks)
 
     rows = TimingRow[]
-    hidden_pages = Pair{String, Int}[]
+    hidden_pages = Pair{String, Int64}[]
     for (page, subtree) in sorted_by_time(pages)
         if page ∉ shown_pages
             push!(hidden_pages, page => subtree["time_ns"])
             continue
         end
         push!(rows, TimingRow(1, page, subtree["time_ns"]))
-        hidden_blocks = Int[]
+        hidden_blocks = Int64[]
         for (label, block) in sorted_by_time(subtree["inner_timers"])
             if (page, label) in shown_blocks
                 push!(rows, TimingRow(2, label, block["time_ns"]))
